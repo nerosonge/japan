@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日本語クイズ | 일본어 단어 퀴즈</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf8f5;
+      --surface: #fff;
+      --ink: #1a1a1a;
+      --muted: #6b6b6b;
+      --accent: #c41e3a;
+      --accent-soft: #fce8eb;
+      --success: #2d6a4f;
+      --success-soft: #d8f3dc;
+      --error: #9d0208;
+      --error-soft: #ffe5e5;
+      --border: #e8e4df;
+      --shadow: 0 4px 24px rgba(0,0,0,0.06);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      line-height: 1.5;
+      position: relative;
+    }
+
+    /* 벚꽃잎 떨어지는 배경 */
+    .petals-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .petal {
+      position: absolute;
+      width: 2cm;
+      height: 2cm;
+      top: -2cm;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cellipse cx='12' cy='12' rx='10' ry='12' fill='%23ffb7c5' opacity='0.9'/%3E%3Cellipse cx='12' cy='12' rx='8' ry='10' fill='%23ff9aad' opacity='0.6'/%3E%3C/svg%3E");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      animation: petal-fall linear infinite;
+    }
+
+    @keyframes petal-fall {
+      0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+      }
+      25% {
+        transform: translateY(25vh) translateX(15px) rotate(90deg);
+      }
+      50% {
+        transform: translateY(50vh) translateX(-10px) rotate(180deg);
+      }
+      75% {
+        transform: translateY(75vh) translateX(8px) rotate(270deg);
+      }
+      100% {
+        transform: translateY(100vh) translateX(0) rotate(360deg);
+      }
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px;
+      border: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+      color: var(--ink);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+
+    /* 시작 화면 */
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .mode-select {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .mode-btn input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .mode-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--ink);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      text-align: left;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .mode-btn:has(input:checked) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .mode-btn .icon {
+      font-size: 1.4rem;
+    }
+
+    .start-btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: white;
+      font-family: inherit;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .start-btn:hover {
+      opacity: 0.92;
+    }
+
+    .start-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* 퀴즈 화면 */
+    .progress-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .question-box {
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .question-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .question-word {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .question-romaji {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .choices {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .choice-btn {
+      padding: 14px 18px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--ink);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      text-align: left;
+    }
+
+    .choice-btn:hover:not(.correct):not(.wrong) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .choice-btn.correct {
+      border-color: var(--success);
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .choice-btn.wrong {
+      border-color: var(--error);
+      background: var(--error-soft);
+      color: var(--error);
+    }
+
+    .choice-btn:disabled {
+      cursor: default;
+      opacity: 0.9;
+    }
+
+    /* 결과 화면 */
+    .result-score {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .result-score .number {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1.2;
+    }
+
+    .result-score .label {
+      font-size: 1rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .result-message {
+      text-align: center;
+      font-size: 1.1rem;
+      margin-bottom: 28px;
+      color: var(--ink);
+    }
+
+    .again-btn {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid var(--accent);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--accent);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .again-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* 연락하기 버튼 */
+    .contact-btn-wrap {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .contact-btn {
+      display: inline-block;
+      padding: 12px 20px;
+      border: 2px solid var(--accent);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--accent);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .contact-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* 연락 모달 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      padding: 28px;
+      width: 100%;
+      max-width: 360px;
+      border: 1px solid var(--border);
+    }
+
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      text-align: center;
+      color: var(--ink);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--ink);
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-group input::placeholder {
+      color: var(--muted);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .modal-actions .submit-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: white;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .modal-actions .submit-btn:hover {
+      opacity: 0.92;
+    }
+
+    .modal-actions .close-btn {
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .modal-actions .close-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="petals-container" id="petals-container" aria-hidden="true"></div>
+  <div class="container">
+    <!-- 시작 화면 -->
+    <section id="start-screen" class="screen active">
+      <h1>日本語クイズ</h1>
+      <p class="subtitle">일본어 단어 퀴즈</p>
+      <div class="mode-select">
+        <label class="mode-btn">
+          <input type="radio" name="mode" value="ja-en" checked>
+          <span class="icon">🇯🇵</span>
+          <span>일본어 → 뜻 (한국어/영어)</span>
+        </label>
+        <label class="mode-btn">
+          <input type="radio" name="mode" value="en-ja">
+          <span class="icon">📖</span>
+          <span>뜻 → 일본어</span>
+        </label>
+      </div>
+      <button type="button" class="start-btn" id="start-btn">퀴즈 시작</button>
+      <div class="contact-btn-wrap">
+        <button type="button" class="contact-btn" id="contact-open-btn">버튼을 눌러 일본인 친구를 만나보세요!</button>
+      </div>
+    </section>
+
+    <!-- 퀴즈 화면 -->
+    <section id="quiz-screen" class="screen">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+      <p class="progress-text" id="progress-text">1 / 10</p>
+      <div class="question-box">
+        <p class="question-label" id="question-label">다음 단어의 뜻은?</p>
+        <p class="question-word" id="question-word"></p>
+        <p class="question-romaji" id="question-romaji"></p>
+      </div>
+      <div class="choices" id="choices"></div>
+    </section>
+
+    <!-- 결과 화면 -->
+    <section id="result-screen" class="screen">
+      <div class="result-score">
+        <p class="number" id="result-number">0</p>
+        <p class="label" id="result-label">맞힌 개수</p>
+      </div>
+      <p class="result-message" id="result-message"></p>
+      <button type="button" class="again-btn" id="again-btn">다시 하기</button>
+    </section>
+  </div>
+
+  <!-- 연락 모달 -->
+  <div class="modal-overlay" id="contact-modal" aria-hidden="true">
+    <div class="modal-box" id="contact-modal-box">
+      <h2 class="modal-title">일본인 친구 만나기</h2>
+      <form id="contact-form">
+        <div class="form-group">
+          <label for="contact-name">이름</label>
+          <input type="text" id="contact-name" name="name" placeholder="이름을 입력하세요" required>
+        </div>
+        <div class="form-group">
+          <label for="contact-phone">전화번호</label>
+          <input type="tel" id="contact-phone" name="phone" placeholder="010-0000-0000" required>
+        </div>
+        <div class="form-group">
+          <label for="contact-email">이메일</label>
+          <input type="email" id="contact-email" name="email" placeholder="example@email.com" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="close-btn" id="contact-close-btn">취소</button>
+          <button type="submit" class="submit-btn">제출하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const vocabulary = [
+      { ja: '水', romaji: 'mizu', meaning: '물' },
+      { ja: '火', romaji: 'hi', meaning: '불' },
+      { ja: '人', romaji: 'hito', meaning: '사람' },
+      { ja: '山', romaji: 'yama', meaning: '산' },
+      { ja: '川', romaji: 'kawa', meaning: '강' },
+      { ja: '木', romaji: 'ki', meaning: '나무' },
+      { ja: '日', romaji: 'hi', meaning: '날, 해' },
+      { ja: '月', romaji: 'tsuki', meaning: '달' },
+      { ja: '金', romaji: 'kane', meaning: '돈, 금' },
+      { ja: '車', romaji: 'kuruma', meaning: '차' },
+      { ja: '本', romaji: 'hon', meaning: '책' },
+      { ja: '友達', romaji: 'tomodachi', meaning: '친구' },
+      { ja: '先生', romaji: 'sensei', meaning: '선생님' },
+      { ja: '学生', romaji: 'gakusei', meaning: '학생' },
+      { ja: '元気', romaji: 'genki', meaning: '건강한, 힘이 넘치는' },
+      { ja: '元気ですか', romaji: 'genki desu ka', meaning: '잘 지내요?' },
+      { ja: '名前', romaji: 'namae', meaning: '이름' },
+      { ja: '食べる', romaji: 'taberu', meaning: '먹다' },
+      { ja: '飲む', romaji: 'nomu', meaning: '마시다' },
+      { ja: '行く', romaji: 'iku', meaning: '가다' },
+      { ja: '来る', romaji: 'kuru', meaning: '오다' },
+      { ja: '見る', romaji: 'miru', meaning: '보다' },
+      { ja: '聞く', romaji: 'kiku', meaning: '듣다, 묻다' },
+      { ja: '読む', romaji: 'yomu', meaning: '읽다' },
+      { ja: '書く', romaji: 'kaku', meaning: '쓰다' },
+      { ja: '大きい', romaji: 'ookii', meaning: '크다' },
+      { ja: '小さい', romaji: 'chiisai', meaning: '작다' },
+      { ja: '新しい', romaji: 'atarashii', meaning: '새로운' },
+      { ja: '古い', romaji: 'furui', meaning: '오래된' },
+      { ja: 'おいしい', romaji: 'oishii', meaning: '맛있다' },
+      { ja: 'ありがとう', romaji: 'arigatou', meaning: '감사합니다' },
+      { ja: 'すみません', romaji: 'sumimasen', meaning: '죄송합니다' },
+      { ja: 'おはよう', romaji: 'ohayou', meaning: '좋은 아침' },
+      { ja: 'こんにちは', romaji: 'konnichiwa', meaning: '안녕하세요' },
+      { ja: 'こんばんは', romaji: 'konbanwa', meaning: '좋은 저녁' },
+      { ja: 'さようなら', romaji: 'sayounara', meaning: '안녕히 가세요' },
+      { ja: '今日', romaji: 'kyou', meaning: '오늘' },
+      { ja: '明日', romaji: 'ashita', meaning: '내일' },
+      { ja: '昨日', romaji: 'kinou', meaning: '어제' },
+    ];
+
+    const QUIZ_SIZE = 10;
+    const CHOICES_COUNT = 4;
+
+    let currentMode = 'ja-en';
+    let quizSet = [];
+    let currentIndex = 0;
+    let score = 0;
+
+    const startScreen = document.getElementById('start-screen');
+    const quizScreen = document.getElementById('quiz-screen');
+    const resultScreen = document.getElementById('result-screen');
+    const startBtn = document.getElementById('start-btn');
+    const againBtn = document.getElementById('again-btn');
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    const questionLabel = document.getElementById('question-label');
+    const questionWord = document.getElementById('question-word');
+    const questionRomaji = document.getElementById('question-romaji');
+    const choicesEl = document.getElementById('choices');
+    const resultNumber = document.getElementById('result-number');
+    const resultLabel = document.getElementById('result-label');
+    const resultMessage = document.getElementById('result-message');
+
+    function getRandomItems(arr, n) {
+      const shuffled = [...arr].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, n);
+    }
+
+    function getWrongChoices(correctMeaning, count) {
+      const others = vocabulary
+        .map(v => v.meaning)
+        .filter(m => m !== correctMeaning);
+      const shuffled = [...others].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, count);
+    }
+
+    function startQuiz() {
+      currentMode = document.querySelector('input[name="mode"]:checked').value;
+      quizSet = getRandomItems(vocabulary, QUIZ_SIZE);
+      currentIndex = 0;
+      score = 0;
+      startScreen.classList.remove('active');
+      quizScreen.classList.add('active');
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const item = quizSet[currentIndex];
+      const progress = ((currentIndex + 1) / QUIZ_SIZE) * 100;
+      progressFill.style.width = progress + '%';
+      progressText.textContent = `${currentIndex + 1} / ${QUIZ_SIZE}`;
+
+      if (currentMode === 'ja-en') {
+        questionLabel.textContent = '다음 단어의 뜻은?';
+        questionWord.textContent = item.ja;
+        questionRomaji.textContent = item.romaji;
+        questionRomaji.style.display = 'block';
+
+        const wrongs = getWrongChoices(item.meaning, CHOICES_COUNT - 1);
+        const options = [item.meaning, ...wrongs].sort(() => Math.random() - 0.5);
+        renderChoices(options, item.meaning, null);
+      } else {
+        questionLabel.textContent = '다음 뜻에 맞는 일본어는?';
+        questionWord.textContent = item.meaning;
+        questionRomaji.style.display = 'none';
+
+        const wrongs = vocabulary
+          .filter(v => v.ja !== item.ja)
+          .map(v => v.ja)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, CHOICES_COUNT - 1);
+        const options = [item.ja, ...wrongs].sort(() => Math.random() - 0.5);
+        renderChoices(options, item.ja, item.romaji);
+      }
+    }
+
+    function renderChoices(options, correctValue, romajiHint) {
+      choicesEl.innerHTML = '';
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'choice-btn';
+        btn.textContent = opt;
+        btn.addEventListener('click', () => handleChoice(btn, opt, correctValue, romajiHint));
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    function handleChoice(btn, chosen, correct, romajiHint) {
+      const allBtns = choicesEl.querySelectorAll('.choice-btn');
+      allBtns.forEach(b => {
+        b.disabled = true;
+        if (b.textContent === correct) b.classList.add('correct');
+        else if (b === btn && chosen !== correct) b.classList.add('wrong');
+      });
+
+      if (chosen === correct) score++;
+
+      setTimeout(() => {
+        currentIndex++;
+        if (currentIndex < QUIZ_SIZE) {
+          showQuestion();
+        } else {
+          showResult();
+        }
+      }, 800);
+    }
+
+    function showResult() {
+      quizScreen.classList.remove('active');
+      resultScreen.classList.add('active');
+      resultNumber.textContent = `${score} / ${QUIZ_SIZE}`;
+      resultLabel.textContent = '맞힌 개수';
+
+      let msg = '';
+      if (score === QUIZ_SIZE) msg = '완벽해요! 🎌';
+      else if (score >= QUIZ_SIZE * 0.8) msg = '잘했어요!';
+      else if (score >= QUIZ_SIZE * 0.5) msg = '괜찮아요. 조금만 더 연습해 보세요.';
+      else msg = '다시 도전해 보세요!';
+      resultMessage.textContent = msg;
+    }
+
+    function goStart() {
+      resultScreen.classList.remove('active');
+      startScreen.classList.add('active');
+    }
+
+    startBtn.addEventListener('click', startQuiz);
+    againBtn.addEventListener('click', goStart);
+
+    // 연락하기 모달
+    const CONTACT_EMAIL = 'spring8rt@gmail.com';
+    const contactModal = document.getElementById('contact-modal');
+    const contactOpenBtn = document.getElementById('contact-open-btn');
+    const contactCloseBtn = document.getElementById('contact-close-btn');
+    const contactForm = document.getElementById('contact-form');
+    const contactModalBox = document.getElementById('contact-modal-box');
+
+    contactOpenBtn.addEventListener('click', function () {
+      contactModal.classList.add('active');
+      contactModal.setAttribute('aria-hidden', 'false');
+    });
+
+    function closeContactModal() {
+      contactModal.classList.remove('active');
+      contactModal.setAttribute('aria-hidden', 'true');
+    }
+
+    contactCloseBtn.addEventListener('click', closeContactModal);
+    contactModal.addEventListener('click', function (e) {
+      if (e.target === contactModal) closeContactModal();
+    });
+    contactModalBox.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+
+    contactForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const name = document.getElementById('contact-name').value.trim();
+      const phone = document.getElementById('contact-phone').value.trim();
+      const email = document.getElementById('contact-email').value.trim();
+      const subject = encodeURIComponent('[일본어 퀴즈] 일본인 친구 만나기 문의');
+      const body = encodeURIComponent(
+        '아래 정보로 연락해 주세요.\n\n' +
+        '이름: ' + name + '\n' +
+        '전화번호: ' + phone + '\n' +
+        '이메일: ' + email
+      );
+      const mailto = 'mailto:' + CONTACT_EMAIL + '?subject=' + subject + '&body=' + body;
+      window.location.href = mailto;
+      closeContactModal();
+      contactForm.reset();
+    });
+
+    // 벚꽃잎 랜덤 생성 (약 2cm, 위→아래 랜덤 떨어짐)
+    (function initPetals() {
+      const container = document.getElementById('petals-container');
+      const petalCount = 18;
+
+      for (let i = 0; i < petalCount; i++) {
+        const petal = document.createElement('div');
+        petal.className = 'petal';
+        petal.style.left = Math.random() * 100 + '%';
+        petal.style.animationDuration = (8 + Math.random() * 10) + 's';
+        petal.style.animationDelay = Math.random() * 12 + 's';
+        petal.style.opacity = 0.6 + Math.random() * 0.35;
+        container.appendChild(petal);
+      }
+    })();
+  </script>
+</body>
+</html>
